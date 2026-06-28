@@ -11,6 +11,10 @@ xgboost>=1.5.0
 shap>=0.52.0
 # Logging and Configuration
 python-box
+pyyaml>=6.0.3
+
+# Cloud and External Services
+kaggle>=2.2.3
 
 # UI
 streamlit>=1.22.0
