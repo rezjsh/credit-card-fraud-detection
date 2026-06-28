@@ -1,0 +1,6 @@
+data_ingestion:
+  root_dir: artifacts/data_ingestion
+  ingestion_strategy: "kaggle_api"
+  source_url_or_path: "nelgiriyewithana/credit-card-fraud-detection-dataset-2023"
+  local_data_file: artifacts/data_ingestion/creditcard_2023.zip
+  unzip_dir: data/raw
