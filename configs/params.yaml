@@ -1,1 +1,32 @@
-key: value
+eda_params:
+  target_column: "Class"
+  correlation_threshold: 0.75
+  outlier_method: "iqr"
+
+ValidationSuite:
+  # General limits
+  cv_max_rows: 50000
+  stability_max_rows: 30000
+  importance_max_rows: 20000
+
+  # Split Strategy & Drift
+  test_size: 0.20
+  train_size: 0.70
+  val_size: 0.15
+  drift_alpha: 0.05
+  split_tolerance: 0.02
+
+  # Cross Validation & Stability
+  n_splits: 5
+  n_repeats: 3
+
+  # Evaluation & Business Costs
+  target_recall: 0.90
+  fp_cost_eur: 3.0
+  decision_threshold: 0.5
+  calibration_bins: 10
+
+  # Robustness checks
+  noise_sigmas: [0.01, 0.05, 0.10, 0.20]
+  subsample_fractions: [0.05, 0.10, 0.20, 0.40, 0.60, 0.80, 1.00]
+  importance_estimators: 50
