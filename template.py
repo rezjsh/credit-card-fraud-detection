@@ -68,7 +68,14 @@ files_to_create = [
     f"src/{PROJECT_SLUG}/components/data_ingestion/strategies.py",    # Local CSV vs Kaggle API download
     f"src/{PROJECT_SLUG}/components/data_ingestion/factory.py",
     f"src/{PROJECT_SLUG}/components/data_ingestion/orchestrator.py",
-    
+
+    # --- Data EDA Component ---
+    f"src/{PROJECT_SLUG}/components/data_eda/__init__.py",  # Exploratory Data Analysis (EDA) for imbalance insights
+    f"src/{PROJECT_SLUG}/components/data_eda/interface.py",
+    f"src/{PROJECT_SLUG}/components/data_eda/strategies.py",  # Visualizations, imbalance ratio calculations
+    f"src/{PROJECT_SLUG}/components/data_eda/orchestrator.py",
+    f"src/{PROJECT_SLUG}/components/data_eda/visualizers.py",        # Generate imbalance visualizations (bar plots, pie charts, etc.)
+
     # --- Data Validation Component ---
     f"src/{PROJECT_SLUG}/components/data_validation/__init__.py",
     f"src/{PROJECT_SLUG}/components/data_validation/interface.py",
@@ -95,10 +102,11 @@ files_to_create = [
     
     # Pipeline Files
     f"src/{PROJECT_SLUG}/pipeline/stage_01_data_ingestion.py",
-    f"src/{PROJECT_SLUG}/pipeline/stage_02_data_validation.py",
-    f"src/{PROJECT_SLUG}/pipeline/stage_03_data_transformation.py",
-    f"src/{PROJECT_SLUG}/pipeline/stage_04_model_trainer.py",
-    f"src/{PROJECT_SLUG}/pipeline/stage_05_model_evaluation.py",
+    f"src/{PROJECT_SLUG}/pipeline/stage_02_data_eda.py",
+    f"src/{PROJECT_SLUG}/pipeline/stage_03_data_validation.py",
+    f"src/{PROJECT_SLUG}/pipeline/stage_04_data_transformation.py",
+    f"src/{PROJECT_SLUG}/pipeline/stage_05_model_trainer.py",
+    f"src/{PROJECT_SLUG}/pipeline/stage_06_model_evaluation.py",
     
     # Config/Entity/Constants Files
     f"src/{PROJECT_SLUG}/config/configuration.py",
