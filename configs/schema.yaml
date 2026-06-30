@@ -1,0 +1,6 @@
+target_column: Class
+amount_column: Amount
+pca_prefix: V
+pca_count: 28
+min_expected_rows: 1000
+allowed_classes: [0, 1]
