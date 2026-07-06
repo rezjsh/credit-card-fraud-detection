@@ -9,7 +9,7 @@ class DataIngestionPipeline:
     def __init__(self, config_manager: ConfigurationManager) -> None:
         self.config_manager = config_manager
 
-    def run_pipeline(self) -> None:
+    def run(self) -> None:
         data_ingestion_config = self.config_manager.get_data_ingestion_config()
         
         orchestrator = DataIngestionOrchestrator(config=data_ingestion_config)
