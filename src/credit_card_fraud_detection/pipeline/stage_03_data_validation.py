@@ -6,10 +6,10 @@ from credit_card_fraud_detection.components.data_eda.strategies import JsonRepor
 from credit_card_fraud_detection.utils.common import logger
 
 class DataValidationTrainingPipeline:
-    def __init__(self):
-        self.config_manager = ConfigurationManager()
+    def __init__(self, config_manager: ConfigurationManager):
+        self.config_manager = config_manager
 
-    def main(self):
+    def run(self):
         logger.info(">>>>>> Starting Validation Pipeline Stage <<<<<<")
         config = self.config_manager.get_validation_config()
         
