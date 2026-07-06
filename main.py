@@ -2,6 +2,7 @@ from credit_card_fraud_detection.config.configuration import ConfigurationManage
 from credit_card_fraud_detection.pipeline.stage_01_data_ingestion import DataIngestionPipeline
 from credit_card_fraud_detection.pipeline.stage_02_data_eda import DataEDAPipeline
 from credit_card_fraud_detection.pipeline.stage_03_data_validation import DataValidationTrainingPipeline
+from credit_card_fraud_detection.pipeline.stage_04_data_transformation import DataTransformationPipeline
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 
@@ -17,21 +18,29 @@ def main():
         STAGE_NAME = "Stage 01: Data Ingestion"
         logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
         data_ingestion_pipeline = DataIngestionPipeline(config_manager)
-        data_ingestion_pipeline.run_pipeline()
+        data_ingestion_pipeline.run()
         logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
         #   # --- Stage 2: Data EDA ---
         # STAGE_NAME = "Stage 02: Data EDA"
         # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
         # eda_pipeline = DataEDAPipeline(config_manager)
-        # eda_pipeline.run_pipeline()
+        # eda_pipeline.run()
         # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
-        # --- Stage 3: Data Validation ---
-        STAGE_NAME = "Stage 03: Data Validation"
+        # # --- Stage 3: Data Validation ---
+        # STAGE_NAME = "Stage 03: Data Validation"
+        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        # validation_pipeline = DataValidationTrainingPipeline(config_manager)
+        # validation_pipeline.run()
+        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+
+        # --- Stage 4: Data Transformation ---
+        STAGE_NAME = "Stage 04: Data Transformation"
         logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        validation_pipeline = DataValidationTrainingPipeline()
-        validation_pipeline.main()
+        transformation_pipeline = DataTransformationPipeline(config_manager)
+        transformation_pipeline.run()
         logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
 
