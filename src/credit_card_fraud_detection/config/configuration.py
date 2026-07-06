@@ -60,6 +60,7 @@ class ConfigurationManager:
             pca_count=schema.pca_count,
             min_expected_rows=schema.min_expected_rows,
             allowed_classes=schema.allowed_classes,
+            active_validators=params.active_validators,
             cv_max_rows=params.cv_max_rows,
             stability_max_rows=params.stability_max_rows,
             importance_max_rows=params.importance_max_rows,
