@@ -11,7 +11,7 @@ class DataEDAPipeline:
     def __init__(self, config_manager):
         self.config_manager = config_manager
 
-    def run_pipeline(self):
+    def run(self):
         eda_config = self.config_manager.get_eda_config()
         
         # Load the data generated from Stage 01
