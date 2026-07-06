@@ -18,3 +18,40 @@ data_validation:
   raw_data_path: data/raw/creditcard_2023.csv
   validation_report_json: artifacts/data_validation/validation_report.json
   eda_report_json: artifacts/data_validation/eda_report.json
+
+data_transformation:
+  # ── Paths ────────────────────────────────────────────────
+  root_dir: artifacts/data_transformation
+
+  raw_data_path: data/raw/creditcard_2023.csv
+
+  # Intermediate outputs (written by each stage)
+  cleaned_data_path: artifacts/data_transformation/cleaned.parquet
+  engineered_data_path: artifacts/data_transformation/engineered.parquet
+  scaled_data_path: artifacts/data_transformation/scaled.parquet
+
+  # Final split outputs
+  train_path: artifacts/data_transformation/splits/train.parquet
+  val_path: artifacts/data_transformation/splits/val.parquet
+  test_path: artifacts/data_transformation/splits/test.parquet
+
+  # Fitted artefact paths (persisted for inference)
+  scaler_path: artifacts/data_transformation/artefacts/scaler.pkl
+  selector_path: artifacts/data_transformation/artefacts/feature_selector.pkl
+  metadata_path: artifacts/data_transformation/artefacts/transform_metadata.json
+
+  # ── Column Roles ─────────────────────────────────────────
+  target_column: Class # binary: 0=legit, 1=fraud
+  id_column: id # row identifier — dropped before modelling
+  amount_column: Amount # only raw financial feature (needs scaling)
+  pca_prefix: V # V1…V28 are PCA-transformed features
+
+  # ── Stage Activation Flags ────────────────────────────────
+  # Set any flag to false to skip that stage entirely.
+  run_cleaning: true
+  run_feature_engineering: true
+  run_scaling: true
+  run_feature_selection: true
+  run_split: true
+  run_resampling: false # off by default — dataset is 50:50 balanced
+
