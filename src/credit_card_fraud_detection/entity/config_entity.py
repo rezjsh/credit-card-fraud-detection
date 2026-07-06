@@ -40,6 +40,7 @@ class ValidationConfig:
     allowed_classes: List[int]
 
     # Run parameters
+    active_validators: List[str]
     cv_max_rows: int
     stability_max_rows: int
     importance_max_rows: int
