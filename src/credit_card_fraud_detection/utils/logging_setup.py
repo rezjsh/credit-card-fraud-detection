@@ -52,6 +52,12 @@ class Logger(metaclass=SingletonMeta):
         # Added dynamic spacing (%-8s) so levels (INFO, WARNING, CRITICAL) align perfectly vertically
         logging_str = "[%(asctime)s | %(levelname)-8s | %(module)s.%(funcName)s:%(lineno)d]: %(message)s"
         formatter = logging.Formatter(logging_str, datefmt='%Y-%m-%d %H:%M:%S')
+        
+        if sys.stdout.encoding.lower() != 'utf-8':
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+            except AttributeError:
+                pass # Fallback just in case
 
         # 1. Console Handler (Writes logs to stdout)
         stream_handler = logging.StreamHandler(sys.stdout)
