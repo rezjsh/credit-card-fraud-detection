@@ -4,6 +4,23 @@ eda_params:
   outlier_method: "iqr"
 
 ValidationSuite:
+  active_validators:
+    - SchemaValidator
+    - DuplicateCheckValidator
+    - ImbalanceValidator
+    - DataLeakageValidator
+    - DistributionDriftValidator
+    - StratifiedSplitValidator
+    - CrossValidationValidator
+    - RepeatedCVStabilityValidator
+    - ThresholdTuner
+    - ConfusionMatrixValidator
+    - CalibrationValidator
+    - LearningCurveValidator
+    - FeatureImportanceValidator
+    - OverfitDetector
+    - NoisePerturbationValidator
+    - SubsampleStabilityValidator
   # General limits
   cv_max_rows: 50000
   stability_max_rows: 30000
@@ -30,3 +47,128 @@ ValidationSuite:
   noise_sigmas: [0.01, 0.05, 0.10, 0.20]
   subsample_fractions: [0.05, 0.10, 0.20, 0.40, 0.60, 0.80, 1.00]
   importance_estimators: 50
+
+transformation:
+  # ── 1. Cleaning ───────────────────────────────────────────
+  cleaning:
+    # Columns to drop unconditionally before any processing
+    drop_columns: ["id", "Id", "ID"]
+
+    # Missing value strategy per column type
+    # "none" means: fail fast if missing values are found
+    missing_strategy:
+      numeric: median # mean | median | zero | none
+      flag_missing: true # add <col>_was_missing indicator column
+
+    # Outlier capping (Winsorisation) — applied to Amount only
+    # PCA features are already standardised; capping distorts their geometry
+    outlier_cap_columns: ["Amount"]
+    outlier_lower_quantile: 0.001
+    outlier_upper_quantile: 0.999
+
+    # Minimum allowed rows after cleaning (pipeline aborts if below)
+    min_rows_after_cleaning: 10000
+
+  # ── 2. Feature Engineering ───────────────────────────────
+  feature_engineering:
+    # Log1p transform of Amount to reduce right skew
+    log_transform_amount: true
+    log_amount_col_name: Amount_log1p
+
+    # Amount binning into risk buckets (edges in EUR)
+    amount_bin_edges: [0, 1, 10, 50, 200, 500, 5000, 999999]
+    amount_bin_labels:
+      ["micro", "very_low", "low", "medium", "high", "very_high", "extreme"]
+    amount_bin_col_name: Amount_risk_bucket
+
+    # PCA feature interactions — product of top-k separable pairs
+    # (V14*V12, V14*V10, V12*V10, V4*V11 are highly informative)
+    pca_interaction_pairs:
+      - ["V14", "V12"]
+      - ["V14", "V10"]
+      - ["V12", "V10"]
+      - ["V4", "V11"]
+      - ["V17", "V14"]
+
+    # L2 norm of all PCA features as a single "distance from origin" signal
+    add_pca_l2_norm: true
+    pca_l2_norm_col_name: V_l2_norm
+
+    # Amount z-score within the dataset (standardised but without sklearn)
+    add_amount_zscore: true
+    amount_zscore_col_name: Amount_zscore
+
+    # Flag suspicious micro-transactions (common in fraud testing)
+    micro_transaction_threshold: 1.0 # EUR
+    micro_transaction_col_name: is_micro_transaction
+
+    # Flag round-number amounts (e.g. exactly €100, €200 — fraud pattern)
+    flag_round_amounts: true
+    round_amount_col_name: is_round_amount
+    round_amount_tolerance: 0.01 # within 1 cent of a round number
+
+  # ── 3. Scaling ────────────────────────────────────────────
+  scaling:
+    # Strategy: standard | robust | minmax | none
+    # "robust" is recommended for Amount (outlier-resistant)
+    # "standard" is appropriate for PCA features (already ~N(0,1))
+    strategy: standard
+
+    # Columns excluded from scaling (already scaled or binary flags)
+    exclude_columns:
+      - Class
+      - Amount_risk_bucket # ordinal encoded, not scaled
+      - is_micro_transaction
+      - is_round_amount
+
+    # Columns to scale with RobustScaler instead of the default strategy
+    robust_scale_columns: ["Amount", "Amount_log1p", "Amount_zscore"]
+
+  # ── 4. Feature Selection ─────────────────────────────────
+  feature_selection:
+    # Strategy: mutual_info | variance | correlation | none
+    strategy: mutual_info
+
+    # Keep top-k features by mutual information score
+    # Set to null to use threshold-based selection instead
+    top_k_features: null
+
+    # Minimum MI score to keep a feature (used if top_k_features is null)
+    mi_score_threshold: 0.001
+
+    # Remove features whose Spearman correlation exceeds this threshold
+    # (removes the lower-MI member of each high-correlation pair)
+    max_spearman_correlation: 0.95
+
+    # Minimum variance threshold — drop near-constant features
+    min_variance: 0.001
+
+    # Subsample size for MI computation (full dataset is slow)
+    mi_sample_size: 50000
+
+  # ── 5. Train / Val / Test Split ──────────────────────────
+  split:
+    test_size: 0.15
+    val_size: 0.15
+    # train_size is implicit: 1 - test_size - val_size = 0.70
+    stratify: true # always stratify on Class
+    random_state: 42
+    shuffle: true
+
+  # ── 6. Resampling (optional) ─────────────────────────────
+  resampling:
+    # Strategy: smote | borderline_smote | adasyn | random_oversample |
+    #           random_undersample | none
+    # Applied to TRAINING SET ONLY after the split.
+    strategy: smote
+
+    # SMOTE / Borderline-SMOTE params
+    k_neighbors: 5
+    random_state: 42
+
+    # Target minority:majority ratio after resampling
+    # 1.0 = perfectly balanced; 0.5 = 1:2 minority:majority
+    sampling_ratio: 1.0
+
+    # Minimum minority samples required to attempt SMOTE
+    min_minority_samples: 10
