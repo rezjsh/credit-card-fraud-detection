@@ -1,7 +1,7 @@
 from credit_card_fraud_detection.utils.logging_setup import logger
 from credit_card_fraud_detection.utils.common import create_directory, read_yaml_file
 from credit_card_fraud_detection.constants.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH,SCHEMA_FILE_PATH
-from credit_card_fraud_detection.entity.config_entity import CleaningConfig, DataIngestionConfig, DataTransformationConfig, EDAConfig, FeatureEngineeringConfig, FeatureSelectionConfig, ResamplingConfig, ScalingConfig, SplitConfig, ValidationConfig
+from credit_card_fraud_detection.entity.config_entity import CleaningConfig, DataIngestionConfig, DataTransformationConfig, EDAConfig, FeatureEngineeringConfig, FeatureSelectionConfig, ModelEvaluationConfig, ModelTrainerConfig, ResamplingConfig, ScalingConfig, SplitConfig, ValidationConfig
 from pathlib import Path
 
 class ConfigurationManager:
@@ -183,4 +183,90 @@ class ConfigurationManager:
             feature_selection=selection_cfg,
             split=split_cfg,
             resampling=resampling_cfg
+        )
+    
+
+    def get_model_trainer_config(self) -> ModelTrainerConfig:
+        config = self.config.model_trainer
+        params = self.params.model_trainer
+        
+        create_directory([
+            Path(config.root_dir),
+            Path(config.model_dir)
+        ])
+        
+        return ModelTrainerConfig(
+            root_dir=Path(config.root_dir),
+            train_path=Path(config.train_path),
+            val_path=Path(config.val_path),
+            train_resampled_path=Path(config.train_resampled_path),
+            use_resampled_train=config.use_resampled_train,
+            model_dir=Path(config.model_dir),
+            best_model_path=Path(config.best_model_path),
+            metrics_path=Path(config.metrics_path),
+            tuning_results_path=Path(config.tuning_results_path),
+            target_column=config.target_column,
+            
+            models_to_train=params.models_to_train,
+            tuning_enabled=params.tuning_enabled,
+            tuning_strategy=params.tuning_strategy,
+            tuning_n_iter=params.tuning_n_iter,
+            tuning_cv_folds=params.tuning_cv_folds,
+            tuning_scoring=params.tuning_scoring,
+            tuning_n_jobs=params.tuning_n_jobs,
+            tuning_random_state=params.tuning_random_state,
+            tuning_sample_size=params.tuning_sample_size,
+            
+            model_selection_metric=params.model_selection_metric,
+            use_class_weight=params.use_class_weight,
+            random_state=params.random_state
+        )
+    
+
+    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+        config = self.config.model_evaluation
+        params = self.params.model_evaluation
+        
+        # FIX: Pass the parent folder of the report file, not the file path itself
+        create_directory([
+            Path(config.root_dir),
+            Path(config.evaluation_report_path).parent,
+            Path(config.plots_dir)
+        ])
+        
+        return ModelEvaluationConfig(
+            # Paths from config.yaml
+            root_dir=Path(config.root_dir),
+            test_path=Path(config.test_path),
+            model_dir=Path(config.model_dir),
+            best_model_path=Path(config.best_model_path),
+            evaluation_report_path=Path(config.evaluation_report_path),
+            comparison_table_path=Path(config.comparison_table_path),
+            plots_dir=Path(config.plots_dir),
+            
+            # Target metadata
+            target_column=config.target_column,
+            
+            # Strategy settings from params.yaml
+            evaluate_all_models=params.evaluate_all_models,
+            optimize_threshold=params.optimize_threshold,
+            threshold_metric=params.threshold_metric,
+            target_recall_floor=params.target_recall_floor,
+            decision_threshold=params.decision_threshold,
+            
+            # Cost matrices
+            fp_cost_eur=params.fp_cost_eur,
+            fn_cost_default_eur=params.fn_cost_default_eur,
+            fn_cost_multiplier=params.fn_cost_multiplier,
+            
+            # Operational parameters
+            metrics=params.metrics,
+            compute_confidence_intervals=params.compute_confidence_intervals,
+            n_bootstrap=params.n_bootstrap,
+            confidence_level=params.confidence_level,
+            
+            # Control execution flags
+            run_calibration_check=params.run_calibration_check,
+            run_subgroup_analysis=params.run_subgroup_analysis,
+            random_state=params.random_state
         )
