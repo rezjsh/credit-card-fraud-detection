@@ -2,7 +2,10 @@ from credit_card_fraud_detection.config.configuration import ConfigurationManage
 from credit_card_fraud_detection.pipeline.stage_01_data_ingestion import DataIngestionPipeline
 from credit_card_fraud_detection.pipeline.stage_02_data_eda import DataEDAPipeline
 from credit_card_fraud_detection.pipeline.stage_03_data_validation import DataValidationTrainingPipeline
+
 from credit_card_fraud_detection.pipeline.stage_04_data_transformation import DataTransformationPipeline
+from credit_card_fraud_detection.pipeline.stage_06_model_evaluation import EvaluationPipeline
+from credit_card_fraud_detection.pipeline.stage_05_model_trainer import ModelTrainerPipeline
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 
@@ -36,15 +39,29 @@ def main():
         # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
 
-        # --- Stage 4: Data Transformation ---
-        STAGE_NAME = "Stage 04: Data Transformation"
+        # # --- Stage 4: Data Transformation ---
+        # STAGE_NAME = "Stage 04: Data Transformation"
+        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        # transformation_pipeline = DataTransformationPipeline(config_manager)
+        # transformation_pipeline.run()
+        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+
+        # # # --- Stage 5: Model Trainer ---
+        # STAGE_NAME = "Stage 05: Model Trainer"
+        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        # model_trainer_pipeline = ModelTrainerPipeline(config_manager)
+        # model_trainer_pipeline.run()
+        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+        
+        ## # --- Stage 6: Model Evaluation ---
+        STAGE_NAME = "Stage 06: Model Evaluation"
         logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        transformation_pipeline = DataTransformationPipeline(config_manager)
-        transformation_pipeline.run()
+        model_evaluation_pipeline = EvaluationPipeline(config=config_manager.get_model_evaluation_config(), val_path=config_manager.get_data_transformation_config().split.val_path)
+        model_evaluation_pipeline.run()
         logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
-
-
-   
+        
     except Exception as e:
         logger.exception(e)
         raise e
