@@ -55,3 +55,46 @@ data_transformation:
   run_split: true
   run_resampling: false # off by default — dataset is 50:50 balanced
 
+# ============================================================
+# Model Trainer
+# ============================================================
+model_trainer:
+  root_dir: artifacts/model_trainer
+  train_path: artifacts/data_transformation/splits/train.parquet
+  val_path: artifacts/data_transformation/splits/val.parquet
+  train_resampled_path: artifacts/data_transformation/splits/train_resampled.parquet
+  use_resampled_train: false
+
+  model_dir: artifacts/model_trainer/models
+  best_model_path: artifacts/model_trainer/models/best_model.pkl
+  metrics_path: artifacts/model_trainer/train_metrics.json
+  tuning_results_path: artifacts/model_trainer/tuning_results.json
+
+  target_column: Class
+
+
+# ============================================================
+# Model Evaluation
+# ============================================================
+model_evaluation:
+  root_dir: artifacts/model_evaluation
+ 
+  test_path:       artifacts/data_transformation/splits/test.parquet
+  model_dir:       artifacts/model_trainer/models
+  best_model_path: artifacts/model_trainer/models/best_model.pkl
+ 
+  evaluation_report_path: artifacts/model_evaluation/evaluation_report.json
+  comparison_table_path:  artifacts/model_evaluation/model_comparison.json
+  plots_dir:               artifacts/model_evaluation/plots
+ 
+  target_column: Class
+  root_dir:               artifacts/model_evaluation
+  test_path:              artifacts/data_transformation/splits/test.parquet
+  models_dir:             artifacts/model_trainer/models
+  best_model_path:        artifacts/model_trainer/best_model.pkl
+  evaluation_report_path: artifacts/model_evaluation/evaluation_report.json
+  plots_dir:              artifacts/model_evaluation/plots
+ 
+ 
+
+ 
