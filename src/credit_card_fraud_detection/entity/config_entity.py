@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
+
+from attrs import field
 
 @dataclass(frozen=True)
 class DataIngestionConfig:
@@ -153,3 +155,82 @@ class DataTransformationConfig:
     feature_selection: FeatureSelectionConfig
     split: SplitConfig
     resampling: ResamplingConfig
+
+
+
+ 
+# ─────────────────────────────────────────────────────────────────────────────
+# Model Training & Evaluation configs
+# ─────────────────────────────────────────────────────────────────────────────
+@dataclass(frozen=True)
+class ModelTrainerConfig:
+    """Unified Configuration for the ModelTrainer stage."""
+    # Paths
+    root_dir: Path
+    train_path: Path
+    val_path: Path
+    train_resampled_path: Path
+    use_resampled_train: bool
+    model_dir: Path
+    best_model_path: Path
+    metrics_path: Path
+    tuning_results_path: Path
+    
+    # Column roles
+    target_column: str
+    
+    # Models and Tuning
+    models_to_train: List[str]
+    tuning_enabled: bool
+    tuning_strategy: str
+    tuning_n_iter: int
+    tuning_cv_folds: int
+    tuning_scoring: str
+    tuning_n_jobs: int
+    tuning_random_state: int
+    tuning_sample_size: int
+    
+    # Selection
+    model_selection_metric: str
+    use_class_weight: bool
+
+    random_state: int
+
+
+@dataclass(frozen=True)
+class ModelEvaluationConfig:
+    """Unified Configuration for the ModelEvaluator stage."""
+    # Paths
+    root_dir: Path
+    test_path: Path
+    model_dir: Path
+    best_model_path: Path
+    evaluation_report_path: Path
+    comparison_table_path: Path
+    plots_dir: Path
+    
+    # Target
+    target_column: str
+    
+    # Evaluation settings
+    evaluate_all_models: bool
+    optimize_threshold: bool
+    threshold_metric: str
+    target_recall_floor: float
+    decision_threshold: Optional[float]
+    
+    # Cost assumptions
+    fp_cost_eur: float
+    fn_cost_default_eur: float
+    fn_cost_multiplier: float
+    
+    # Metrics
+    metrics: List[str]
+    compute_confidence_intervals: bool
+    n_bootstrap: int
+    confidence_level: float
+    
+    # Robustness checks
+    run_calibration_check: bool
+    run_subgroup_analysis: bool
+    random_state: int
