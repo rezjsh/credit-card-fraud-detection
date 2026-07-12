@@ -1,11 +1,14 @@
 import json
 import os
+from pathlib import Path
 import zipfile
 import pickle
 from typing import List, Dict, Any
 from box import ConfigBox
 import requests
 import yaml
+import pandas as pd
+
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 def read_yaml_file(file_path: str) -> ConfigBox:
@@ -180,4 +183,29 @@ def load_model(file_path: str) -> Any:
         return model
     except Exception as e:
         logger.error(f"Error loading model from {file_path}: {e}")
+        raise e
+
+
+def load_data(filepath: Path | str) -> pd.DataFrame:
+    """
+    Loads a dataset from a given filepath. 
+    Supports .parquet and .csv formats.
+    """
+    try:
+        path_obj = Path(filepath)
+        if not path_obj.exists():
+            raise FileNotFoundError(f"Data file not found at: {path_obj}")
+            
+        if path_obj.suffix == '.parquet':
+            df = pd.read_parquet(path_obj)
+        elif path_obj.suffix == '.csv':
+            df = pd.read_csv(path_obj)
+        else:
+            raise ValueError(f"Unsupported file format '{path_obj.suffix}'. Expected .parquet or .csv")
+            
+        logger.info(f"Successfully loaded dataset from: {path_obj} | Shape: {df.shape}")
+        return df
+        
+    except Exception as e:
+        logger.error(f"Failed to load data from {filepath}: {e}")
         raise e
