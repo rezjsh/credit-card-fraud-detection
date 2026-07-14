@@ -24,35 +24,35 @@ def main():
         data_ingestion_pipeline.run()
         logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
-        #   # --- Stage 2: Data EDA ---
-        # STAGE_NAME = "Stage 02: Data EDA"
-        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        # eda_pipeline = DataEDAPipeline(config_manager)
-        # eda_pipeline.run()
-        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+          # --- Stage 2: Data EDA ---
+        STAGE_NAME = "Stage 02: Data EDA"
+        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        eda_pipeline = DataEDAPipeline(config_manager)
+        eda_pipeline.run()
+        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
-        # # --- Stage 3: Data Validation ---
-        # STAGE_NAME = "Stage 03: Data Validation"
-        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        # validation_pipeline = DataValidationTrainingPipeline(config_manager)
-        # validation_pipeline.run()
-        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
-
-
-        # # --- Stage 4: Data Transformation ---
-        # STAGE_NAME = "Stage 04: Data Transformation"
-        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        # transformation_pipeline = DataTransformationPipeline(config_manager)
-        # transformation_pipeline.run()
-        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+        # --- Stage 3: Data Validation ---
+        STAGE_NAME = "Stage 03: Data Validation"
+        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        validation_pipeline = DataValidationTrainingPipeline(config_manager)
+        validation_pipeline.run()
+        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
 
-        # # # --- Stage 5: Model Trainer ---
-        # STAGE_NAME = "Stage 05: Model Trainer"
-        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        # model_trainer_pipeline = ModelTrainerPipeline(config_manager)
-        # model_trainer_pipeline.run()
-        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+        # --- Stage 4: Data Transformation ---
+        STAGE_NAME = "Stage 04: Data Transformation"
+        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        transformation_pipeline = DataTransformationPipeline(config_manager)
+        transformation_pipeline.run()
+        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+
+        # # --- Stage 5: Model Trainer ---
+        STAGE_NAME = "Stage 05: Model Trainer"
+        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+        model_trainer_pipeline = ModelTrainerPipeline(config_manager)
+        model_trainer_pipeline.run()
+        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
         
         ## # --- Stage 6: Model Evaluation ---
