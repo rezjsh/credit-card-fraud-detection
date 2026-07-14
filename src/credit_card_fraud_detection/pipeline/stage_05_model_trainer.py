@@ -7,7 +7,7 @@ from credit_card_fraud_detection.utils.logging_setup import logger
 
 class ModelTrainerPipeline:
     def __init__(self, config_manager: ConfigurationManager) -> None:
-        self.config_manager = config_manager.get_model_trainer_config()
+        self.config_manager = config_manager
 
     def run(self) -> None:
         logger.info(">>>>>> Commencing Pipeline Execution Stage 06: Model Trainer <<<<<<")
