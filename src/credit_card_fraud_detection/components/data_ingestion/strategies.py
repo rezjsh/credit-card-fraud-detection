@@ -15,26 +15,70 @@ load_dotenv()
 
 
 class LocalCSVIngestionStrategy(IDataIngestionStrategy):
+    """Strategy for handling datasets supplied via local file system paths."""
+
     def download_data(self, config: DataIngestionConfig) -> None:
-        """Download data from a local CSV file."""
-        logger.info(f"Copying local data file from {config.source_url_or_path}...")
+        """Stages the local source file into the ingestion staging location."""
         source_path = Path(config.source_url_or_path)
 
         if not source_path.exists():
-            raise FileNotFoundError(f"Source file not found at {source_path}")
+            raise FileNotFoundError(f"Local source file not found at: {source_path}")
 
+        if config.local_data_file.exists() and config.local_data_file.stat().st_size > 0:
+            logger.info(f"Local file already present in staging, skipping copy: {config.local_data_file}")
+            return
+
+        logger.info(f"Staging local data file from {source_path} to {config.local_data_file}...")
         config.local_data_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, config.local_data_file)
-        logger.info(f"File copied successfully to {config.local_data_file}")
+        logger.info(f"File staged successfully at {config.local_data_file}")
 
     def extract_data(self, config: DataIngestionConfig) -> None:
-        """Extract data from a local CSV file (no extraction needed)."""
-        logger.info("Local file does not require extraction. Verifying landing path...")
-        config.unzip_dir.mkdir(parents=True, exist_ok=True)
-        raw_target = config.unzip_dir / Path(config.source_url_or_path).name
-        shutil.copy2(config.local_data_file, raw_target)
-        logger.info(f"File copied successfully to {raw_target}")
+        """
+        Extracts ZIP archives into the raw landing directory, or creates zero-overhead links
+        for uncompressed datasets to eliminate redundant disk footprint and I/O overhead.
+        """
+        if not config.local_data_file.exists():
+            raise FileNotFoundError(f"Staged dataset not found at: {config.local_data_file}")
 
+        config.unzip_dir.mkdir(parents=True, exist_ok=True)
+
+        # 1. If the local staged file is a ZIP archive, unpack it
+        if zipfile.is_zipfile(config.local_data_file):
+            logger.info(f"Staged file is a ZIP archive. Unpacking {config.local_data_file.name} to {config.unzip_dir}...")
+            try:
+                with zipfile.ZipFile(config.local_data_file, "r") as zip_ref:
+                    zip_ref.extractall(config.unzip_dir)
+                logger.info(f"Successfully extracted ZIP contents into: {config.unzip_dir}")
+            except zipfile.BadZipFile as e:
+                raise RuntimeError(f"Corrupted ZIP file at {config.local_data_file}: {e}") from e
+            return
+
+        # 2. For uncompressed datasets (CSV, Parquet, etc.), stage via linking instead of duplicating raw bytes
+        raw_target = config.unzip_dir / config.local_data_file.name
+
+        if raw_target.exists() and raw_target.stat().st_size > 0:
+            logger.info(f"Raw landing file already exists, skipping link step: {raw_target}")
+            return
+
+        logger.info(f"Staging uncompressed dataset at raw landing path: {raw_target}")
+
+        try:
+            # Tier 1: Hardlink (0 extra bytes, instantaneous 0ms execution, supported on Windows & POSIX without admin rights)
+            raw_target.hardlink_to(config.local_data_file)
+            logger.info(f"Hardlink created successfully (0 MB added): {raw_target} -> {config.local_data_file}")
+
+        except OSError:
+            try:
+                # Tier 2: Symlink (Fallback if hardlink is restricted)
+                raw_target.symlink_to(config.local_data_file.resolve())
+                logger.info(f"Symlink created successfully: {raw_target} -> {config.local_data_file}")
+
+            except OSError:
+                # Tier 3: Physical Copy (Final fallback for cross-volume/mount restrictions)
+                logger.warning("Hardlink/Symlink failed (cross-device filesystem restriction). Falling back to physical copy...")
+                shutil.copy2(config.local_data_file, raw_target)
+                logger.info(f"Fallback physical copy completed at: {raw_target}")
 
 class KaggleAPIIngestionStrategy(IDataIngestionStrategy):
     def _build_session(self) -> requests.Session:
@@ -43,7 +87,7 @@ class KaggleAPIIngestionStrategy(IDataIngestionStrategy):
             total=5,
             connect=5,
             read=5,
-            backoff_factor=2,
+            backoff_factor=1,
             status_forcelist=(429, 500, 502, 503, 504),
             allowed_methods=frozenset(["GET"]),
             raise_on_status=False,
@@ -107,7 +151,7 @@ class KaggleAPIIngestionStrategy(IDataIngestionStrategy):
     def extract_data(self, config: DataIngestionConfig) -> None:
         """Extract data from the downloaded Kaggle zip file."""
         expected_csv = config.unzip_dir / Path(config.local_data_file).name.replace(".zip", ".csv")
-        if expected_csv.exists() and expected_csv.stat().st_size > 0:
+        if expected_csv.exists() and expected_csv.stat().st_size > 0 and zipfile.is_zipfile(config.local_data_file):
             logger.info(f"Extracted file already exists, skipping extraction: {expected_csv}")
             return
         logger.info("Extracting zip archive into raw data directory...")
@@ -117,10 +161,21 @@ class KaggleAPIIngestionStrategy(IDataIngestionStrategy):
 
         config.unzip_dir.mkdir(parents=True, exist_ok=True)
 
-        try:
-            with zipfile.ZipFile(config.local_data_file, "r") as zip_ref:
-                zip_ref.extractall(config.unzip_dir)
-        except zipfile.BadZipFile as e:
-            raise RuntimeError(f"Downloaded file is not a valid zip archive: {e}") from e
+        if zipfile.is_zipfile(config.local_data_file):
+            logger.info(f"Payload is a valid ZIP archive. Unpacking {config.local_data_file.name}...")
+            try:
+                with zipfile.ZipFile(config.local_data_file, "r") as zip_ref:
+                    zip_ref.extractall(config.unzip_dir)
+                logger.info(f"Successfully extracted ZIP archive contents into: {config.unzip_dir}")
+            except zipfile.BadZipFile as e:
+                raise RuntimeError(f"Downloaded file appears to be a corrupted ZIP archive: {e}") from e
+        else:
+            logger.info(f"Payload is not a ZIP archive. Copying raw payload directly to landing directory...")
+            target_path = config.unzip_dir / config.local_data_file.name
 
-        logger.info(f"Extracted all files into: {config.unzip_dir}")
+            if target_path.exists() and target_path.stat().st_size > 0:
+                logger.info(f"Raw landing file already exists, skipping copy: {target_path}")
+                return
+
+            shutil.copy2(config.local_data_file, target_path)
+            logger.info(f"Raw payload successfully staged at: {target_path}")
