@@ -75,5 +75,6 @@ class DataTransformationPipeline:
         logger.info(">>>>>> Data Transformation Pipeline Completed Successfully <<<<<<")
 
 if __name__ == '__main__':
-    pipeline = DataTransformationPipeline()
+    config_manager = ConfigurationManager()
+    pipeline = DataTransformationPipeline(config_manager=config_manager)
     pipeline.run()
