@@ -5,45 +5,25 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-
 class ReportStrategy(ABC):
     @abstractmethod
     def generate(self, results: dict, filepath: str | Path) -> None:
         """Serialise *results* and write to *filepath*."""
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _section(title: str, width: int = 60) -> str:
+def _section(title: str, width: int = 80) -> str:
     return f"\n{'─' * width}\n  {title}\n{'─' * width}"
-
 
 def _fmt_pct(value: float) -> str:
     return f"{value:.2f}%"
 
-
-# ---------------------------------------------------------------------------
-# Text strategy
-# ---------------------------------------------------------------------------
-
 class TextReportStrategy(ReportStrategy):
-    """
-    Produces a readable, section-per-key plain-text report.
-
-    Covers every key that the standard pipeline may produce so nothing is
-    silently dropped into the output file.
-    """
-
     def generate(self, results: dict, filepath: str | Path) -> None:
         lines: list[str] = [
-            "=" * 60,
+            "=" * 80,
             "          AUTOMATED EDA REPORT          ",
-            "=" * 60,
+            "=" * 80,
         ]
 
-        # 1. Pipeline metadata
         if meta := results.get("_pipeline_metadata"):
             lines.append(_section("PIPELINE METADATA"))
             lines.append(f"  Duration   : {meta.get('pipeline_duration_seconds', 'N/A')}s")
@@ -51,20 +31,13 @@ class TextReportStrategy(ReportStrategy):
             failed = meta.get("failed_components", [])
             lines.append(f"  Failed     : {', '.join(failed) if failed else 'none'}")
 
-        # 2. Dataset overview
         if "num_rows" in results:
             lines.append(_section("DATASET OVERVIEW"))
             lines.append(f"  Rows          : {results['num_rows']:,}")
             lines.append(f"  Columns       : {results['num_cols']}")
             lines.append(f"  Memory        : {results['memory_usage_mb']:.2f} MB")
-            lines.append(f"  Duplicate rows: {results.get('duplicate_rows', 'N/A')} "
-                         f"({results.get('duplicate_percentage', 'N/A')}%)")
-            if dtypes := results.get("dtypes"):
-                lines.append("\n  Column types:")
-                for col, dtype in dtypes.items():
-                    lines.append(f"    {col:<30} {dtype}")
+            lines.append(f"  Duplicate rows: {results.get('duplicate_rows', 'N/A')} ({results.get('duplicate_percentage', 'N/A')}%)")
 
-        # 3. Missing data
         if "missing_data" in results:
             lines.append(_section("MISSING DATA"))
             missing = results["missing_data"]
@@ -76,22 +49,20 @@ class TextReportStrategy(ReportStrategy):
                 for col, m in missing.items():
                     lines.append(f"  {col:<30} {m['count']:>8,}  {_fmt_pct(m['percentage']):>7}")
 
-        # 4. Outliers
         if "outliers" in results:
             lines.append(_section("OUTLIERS  (IQR method)"))
             outliers = results["outliers"]
             if not outliers:
                 lines.append("  ✓ No outliers detected at the current threshold.")
             else:
-                lines.append(f"  {'Column':<30} {'Count':>8}  {'%':>7}  {'Lower':>10}  {'Upper':>10}")
-                lines.append(f"  {'─'*30} {'─'*8}  {'─'*7}  {'─'*10}  {'─'*10}")
+                lines.append(f"  {'Column':<20} {'Count':>8}  {'%':>7}  {'Lower':>12}  {'Upper':>12}")
+                lines.append(f"  {'─'*20} {'─'*8}  {'─'*7}  {'─'*12}  {'─'*12}")
                 for col, m in outliers.items():
                     lines.append(
-                        f"  {col:<30} {m['outlier_count']:>8,}  {_fmt_pct(m['percentage']):>7}"
-                        f"  {m['lower_bound']:>10.4f}  {m['upper_bound']:>10.4f}"
+                        f"  {col:<20} {m['outlier_count']:>8,}  {_fmt_pct(m['percentage']):>7}"
+                        f"  {m['lower_bound']:>12.4f}  {m['upper_bound']:>12.4f}"
                     )
 
-        # 5. Target distribution
         if "target_distribution" in results:
             lines.append(_section("TARGET DISTRIBUTION"))
             dist = results["target_distribution"]
@@ -106,50 +77,19 @@ class TextReportStrategy(ReportStrategy):
             else:
                 lines.append(f"  {dist}")
 
-        # 6. Cardinality
-        if "cardinality" in results:
-            lines.append(_section("CATEGORICAL CARDINALITY"))
-            card = results["cardinality"]
-            if card:
-                lines.append(f"  {'Column':<30} {'Unique values':>14}")
-                lines.append(f"  {'─'*30} {'─'*14}")
-                for col, n in sorted(card.items(), key=lambda x: x[1], reverse=True):
-                    lines.append(f"  {col:<30} {n:>14,}")
-            high = results.get("high_cardinality_columns", [])
-            # if high:
-            #     lines.append(f"\n  ⚠  High-cardinality columns (>{CardinalityAnalyzer.HIGH_CARDINALITY_THRESHOLD}): "
-            #                  f"{', '.join(high)}")
-            const = results.get("constant_columns", [])
-            if const:
-                lines.append(f"  ⚠  Constant columns (useless for modelling): {', '.join(const)}")
-
-        # 7. Univariate analysis
         if "univariate_analysis" in results:
-            lines.append(_section("UNIVARIATE ANALYSIS"))
+            lines.append(_section("UNIVARIATE ANALYSIS (Numerical)"))
             ua = results["univariate_analysis"]
-
-            if num := ua.get("numerical"):
-                lines.append("\n  Numerical features:")
-                hdr = f"  {'Column':<28} {'Mean':>10}  {'Std':>10}  {'Skew':>7}  {'Kurt':>7}"
+            if isinstance(ua, dict):
+                hdr = f"  {'Column':<20} {'Mean':>12}  {'Std':>12}  {'Skew':>9}  {'Kurt':>9}"
                 lines.append(hdr)
-                lines.append(f"  {'─'*28} {'─'*10}  {'─'*10}  {'─'*7}  {'─'*7}")
-                for col, s in num.items():
+                lines.append(f"  {'─'*20} {'─'*12}  {'─'*12}  {'─'*9}  {'─'*9}")
+                for col, s in ua.items():
                     lines.append(
-                        f"  {col:<28} {s['mean']:>10.4f}  {s['std']:>10.4f}"
-                        f"  {s['skewness']:>7.2f}  {s['kurtosis']:>7.2f}"
+                        f"  {col:<20} {s['mean']:>12.4f}  {s['std']:>12.4f}"
+                        f"  {s['skewness']:>9.4f}  {s['kurtosis']:>9.4f}"
                     )
 
-            if cat := ua.get("categorical"):
-                lines.append("\n  Categorical features (mode):")
-                lines.append(f"  {'Column':<28} {'Mode':<25} {'Freq':>8}  {'%':>7}")
-                lines.append(f"  {'─'*28} {'─'*25} {'─'*8}  {'─'*7}")
-                for col, s in cat.items():
-                    lines.append(
-                        f"  {col:<28} {str(s['mode']):<25} {s['mode_frequency']:>8,}"
-                        f"  {_fmt_pct(s['mode_percentage']):>7}"
-                    )
-
-        # 8. Mutual information
         if "mutual_information_scores" in results:
             lines.append(_section("FEATURE IMPORTANCE  (Mutual Information)"))
             mi = results["mutual_information_scores"]
@@ -162,64 +102,49 @@ class TextReportStrategy(ReportStrategy):
             else:
                 lines.append(f"  {mi}")
 
-        # 9. VIF / multicollinearity
-        if "vif_scores" in results:
-            lines.append(_section("MULTICOLLINEARITY  (VIF scores)"))
-            vif = results["vif_scores"]
-            if isinstance(vif, dict):
-                lines.append(f"  {'Feature':<35} {'VIF':>8}  Status")
-                lines.append(f"  {'─'*35} {'─'*8}  {'─'*10}")
-                for col, info in vif.items():
-                    if isinstance(info, dict):
-                        flag = "⚠  HIGH" if info["flag"] == "HIGH" else "✓  OK"
-                        vif_val = f"{info['vif']:.2f}" if info["vif"] is not None else "N/A"
-                        lines.append(f"  {col:<35} {vif_val:>8}  {flag}")
-                    else:
-                        lines.append(f"  {col:<35}  {info}")
+        if "spearman_correlation_matrix" in results:
+            lines.append(_section("HIGH CORRELATION PAIRS (Spearman)"))
+            pairs = results.get("high_correlation_pairs", [])
+            if not pairs:
+                lines.append("  ✓ No highly correlated pairs > threshold found.")
             else:
-                lines.append(f"  {vif}")
+                lines.append(f"  {'Feature A':<25} {'Feature B':<25} {'Spearman r':>12}")
+                lines.append(f"  {'─'*25} {'─'*25} {'─'*12}")
+                for p in pairs:
+                    lines.append(f"  {p['feature_a']:<25} {p['feature_b']:<25} {p['spearman_r']:>12.4f}")
 
-        # 10. Bivariate analysis (summary only — full data in JSON)
         if "bivariate_analysis" in results:
-            lines.append(_section("BIVARIATE ANALYSIS  (excerpt — see JSON for full detail)"))
+            lines.append(_section("BIVARIATE ANALYSIS (Mean by Class Excerpt)"))
             ba = results["bivariate_analysis"]
-            if isinstance(ba, dict):
-                lines.append("  Numerical mean by target class:")
-                for target_class, col_means in (ba.get("numerical_mean_by_target") or {}).items():
-                    lines.append(f"    Target = {target_class}")
-                    for col, mean in col_means.items():
-                        lines.append(f"      {col:<30}: {mean}")
+            if isinstance(ba, dict) and "mean_by_class" in ba:
+                means = ba["mean_by_class"]
+                diffs = ba.get("abs_mean_difference_by_feature", {})
+                
+                lines.append(f"  {'Feature':<20} {'Class 0 Mean':>15} {'Class 1 Mean':>15} {'Abs Diff':>15}")
+                lines.append(f"  {'─'*20} {'─'*15} {'─'*15} {'─'*15}")
+                
+                for col, val_dict in means.items():
+                    c0 = f"{val_dict.get(0, 'N/A'):.4f}" if isinstance(val_dict.get(0), (int, float)) else "N/A"
+                    c1 = f"{val_dict.get(1, 'N/A'):.4f}" if isinstance(val_dict.get(1), (int, float)) else "N/A"
+                    d = f"{diffs.get(col, 'N/A'):.4f}" if isinstance(diffs.get(col), (int, float)) else "N/A"
+                    lines.append(f"  {col:<20} {c0:>15} {c1:>15} {d:>15}")
             else:
                 lines.append(f"  {ba}")
 
-        # 11. Visualisations
-        if "visualizations" in results:
+        vis_keys = [k for k in results.keys() if k.startswith("visualizations")]
+        if vis_keys:
             lines.append(_section("VISUALIZATIONS"))
-            lines.append(f"  {results['visualizations']}")
+            for vk in vis_keys:
+                lines.append(f"  - {results[vk]}")
 
-        lines.append("\n" + "=" * 60)
+        lines.append("\n" + "=" * 80)
         lines.append("  END OF REPORT")
-        lines.append("=" * 60 + "\n")
+        lines.append("=" * 80 + "\n")
 
         Path(filepath).write_text("\n".join(lines), encoding="utf-8")
 
 
-# Needed for the cardinality threshold reference inside the text strategy
-# from credit_card_fraud_detection.components.data_eda.analyzers import CardinalityAnalyzer  # noqa: E402
-
-
-# ---------------------------------------------------------------------------
-# JSON strategy
-# ---------------------------------------------------------------------------
-
 class JsonReportStrategy(ReportStrategy):
-    """
-    Full-fidelity JSON export.
-
-    Uses a custom encoder to handle numpy/pandas types that the stdlib encoder
-    would reject.
-    """
-
     class _SafeEncoder(json.JSONEncoder):
         def default(self, obj: Any) -> Any:
             import numpy as np
