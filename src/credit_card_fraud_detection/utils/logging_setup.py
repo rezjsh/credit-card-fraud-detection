@@ -3,6 +3,7 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 from credit_card_fraud_detection.core.singleton import SingletonMeta
+from pathlib import Path
 
 
 
@@ -15,7 +16,7 @@ class Logger(metaclass=SingletonMeta):
     def __init__(
         self, 
         logger_name: str = "credit_card_fraud_detection", 
-        log_dir: str = "logs", 
+        log_dir: str | Path = "logs", 
         log_file_name: str = "running_logs.log",
         level: int = logging.INFO,
         max_bytes: int = 10 * 1024 * 1024,  # 10 MB
