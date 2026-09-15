@@ -29,6 +29,7 @@ strings except the pca_prefix pattern.
 
 from __future__ import annotations
 
+import pickle
 import warnings
 from pathlib import Path
 from typing import List
@@ -36,11 +37,14 @@ from typing import List
 import numpy as np
 import pandas as pd
 
+from credit_card_fraud_detection.components.data_transformation.interface import (
+    FittedTransformationComponent,
+)
 from credit_card_fraud_detection.entity.config_entity import FeatureEngineeringConfig
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 
-class FeatureEngineer:
+class FeatureEngineer(FittedTransformationComponent):
     """
     Transforms a cleaned DataFrame into a feature-rich DataFrame.
 
@@ -51,43 +55,84 @@ class FeatureEngineer:
 
     Exception: Amount_zscore uses dataset-level mean/std.  These are
     computed on the training set and stored in the report for re-use
-    on val/test (see _compute_amount_zscore).
+    on val/test, and persisted to disk for inference.
     """
 
     def __init__(self, config: FeatureEngineeringConfig) -> None:
         self.config  = config
         self._report: dict = {}
-        # Populated during fit on train; reused for val/test
+        # Populated during fit on train; reused for val/test/inference
         self._amount_mean: float | None = None
         self._amount_std:  float | None = None
+        self._is_fitted: bool = False
 
     # ─────────────────────────────────────────────────────────────────
-    # Public API
+    # Public API (FittedTransformationComponent Interface)
     # ─────────────────────────────────────────────────────────────────
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Compute dataset-level statistics on *df*, then transform.
-        Call this on the training set.
+        Call this strictly on the training set.
         """
         cfg = self.config
         if cfg.add_amount_zscore and cfg.amount_column in df.columns:
             self._amount_mean = float(df[cfg.amount_column].mean())
             self._amount_std  = float(df[cfg.amount_column].std())
+        
+        self._is_fitted = True
         return self._engineer(df)
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Transform *df* using statistics learned during fit_transform.
-        Call this on val/test sets.
+        Call this on val/test sets and during real-time inference.
         """
+        if not self._is_fitted:
+            raise RuntimeError("Call fit_transform() before transform().")
         return self._engineer(df)
 
-    def save(self, df: pd.DataFrame, path: Path | None = None) -> Path:
+    @classmethod
+    def load(cls, path: Path) -> "FeatureEngineer":
+        """Load a previously fitted FeatureEngineer from disk for inference."""
+        with open(path, "rb") as f:
+            payload = pickle.load(f)
+            
+        instance = cls(config=payload["config"])
+        instance._amount_mean = payload["amount_mean"]
+        instance._amount_std  = payload["amount_std"]
+        instance._is_fitted   = True
+        
+        logger.info(f"FeatureEngineer: loaded artefact from {path}")
+        return instance
+
+    def save_artefact(self, path: Path | None = None) -> Path:
+        """Persist fitted parameters to disk for inference use."""
+        if not self._is_fitted:
+            raise RuntimeError("Nothing to save — not yet fitted.")
+            
+        # Safely attempt to get the path from config, or use a sensible fallback
+        default_path = getattr(self.config, 'engineered_artefact_path', 'artifacts/data_transformation/feature_engineer.pkl')
+        out = Path(path or default_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(out, "wb") as f:
+            pickle.dump({
+                "config": self.config,
+                "amount_mean": self._amount_mean,
+                "amount_std": self._amount_std
+            }, f)
+            
+        logger.info(f"FeatureEngineer: artefact saved → {out}")
+        return out
+
+    def save_data(self, df: pd.DataFrame, path: Path | None = None) -> Path:
+        """Persist the engineered DataFrame to disk."""
         out = Path(path or self.config.engineered_data_path)
         out.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(out, index=False, compression="snappy")
-        logger.info(f"FeatureEngineer: saved → {out}")
+        
+        logger.info(f"FeatureEngineer: saved engineered data → {out}")
         return out
 
     @property
@@ -198,6 +243,7 @@ class FeatureEngineer:
         cfg = self.config
         col = cfg.micro_transaction_col_name
         df[col] = (df[cfg.amount_column] < cfg.micro_transaction_threshold).astype(int)
+        
         n_micro = int(df[col].sum())
         logger.info(f"  + {col} ({n_micro:,} micro-transactions flagged)")
         return df, [col]
