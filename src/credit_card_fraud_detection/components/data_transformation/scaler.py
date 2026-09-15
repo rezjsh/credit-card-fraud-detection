@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
+from credit_card_fraud_detection.components.data_transformation.interface import FittedTransformationComponent
 from credit_card_fraud_detection.entity.config_entity import ScalingConfig
 from credit_card_fraud_detection.utils.logging_setup import logger
 
@@ -43,7 +44,7 @@ from credit_card_fraud_detection.utils.logging_setup import logger
 _Scaler = StandardScaler | RobustScaler | MinMaxScaler
 
 
-class FeatureScaler:
+class FeatureScaler(FittedTransformationComponent):
     """
     Fits scalers on a training DataFrame and transforms any DataFrame.
 
