@@ -1,9 +1,11 @@
 import pandas as pd
 from typing import Optional
 
+from credit_card_fraud_detection.entity.config_entity import ValidationConfig
+
 class ValidationContext:
     """Stateful context to cache expensive Pandas operations for the validation pipeline."""
-    def __init__(self, df: pd.DataFrame, config: 'ValidationConfig'):
+    def __init__(self, df: pd.DataFrame, config: ValidationConfig):
         self.df = df
         self.config = config
         self._clean_df: Optional[pd.DataFrame] = None
