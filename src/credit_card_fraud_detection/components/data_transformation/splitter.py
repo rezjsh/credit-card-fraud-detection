@@ -23,18 +23,18 @@ CC Fraud 2023 (balanced 50:50):
 from __future__ import annotations
 
 import json
-import time
 from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from credit_card_fraud_detection.components.data_transformation.interface import TransformationComponent
 from credit_card_fraud_detection.entity.config_entity import SplitConfig
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 
-class DataSplitter:
+class DataSplitter(TransformationComponent):
     """
     Performs a reproducible, stratified three-way split.
 
