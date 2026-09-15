@@ -12,7 +12,7 @@ Orchestrates the full model evaluation stage:
 
 Usage:
     cfg      = ConfigurationManager().get_model_evaluation_config()
-    pipeline = EvaluationPipeline(cfg)
+    pipeline = EvaluationPipeline(cfg, val_path)
     pipeline.run()
 """
 
