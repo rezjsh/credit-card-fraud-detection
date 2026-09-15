@@ -22,17 +22,16 @@ CC Fraud 2023 specifics:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
+from credit_card_fraud_detection.components.data_transformation.interface import TransformationComponent
 from credit_card_fraud_detection.entity.config_entity import CleaningConfig
 from credit_card_fraud_detection.utils.logging_setup import logger
 
 
-class DataCleaner:
+class DataCleaner(TransformationComponent):
     """
     Stateless cleaning component.
 
