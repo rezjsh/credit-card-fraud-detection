@@ -23,7 +23,7 @@ def read_yaml_file(file_path: str) -> ConfigBox:
     """
     try:
         logger.info(f"Reading YAML file: {file_path}")
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding="utf-8") as file:
             content = yaml.safe_load(file)
             logger.info(f"YAML file {file_path} loaded successfully")
         return ConfigBox(content)
@@ -90,7 +90,7 @@ def load_json(file_path: str) -> Dict[str, Any]:
 def download_file(url: str, filename: str) -> bool:
     """
     Downloads a file from a given URL. Extremely helpful for pulling the 
-    Telco Churn dataset directly from remote buckets or storage.
+    dataset directly from remote buckets or storage.
     
     Args:
         url (str): The URL of the file to download.
