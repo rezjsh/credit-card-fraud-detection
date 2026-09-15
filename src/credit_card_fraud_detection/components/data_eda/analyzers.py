@@ -101,6 +101,8 @@ class OutlierAnalyzer(AnalysisComponent):
         profile = {}
         for col in numeric_df.columns:
             s = numeric_df[col].dropna()
+            if s.empty:
+                continue
             Q1, Q3 = s.quantile(0.25), s.quantile(0.75)
             IQR = Q3 - Q1
             lo, hi = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
@@ -108,7 +110,11 @@ class OutlierAnalyzer(AnalysisComponent):
             if n_out > 0:
                 profile[col] = {
                     "outlier_count": n_out,
-                    "percentage": round(n_out / len(df) * 100, 4),
+                    "percentage_all_rows": round(n_out / len(df) * 100, 4),
+                    "percentage_non_null": round(n_out / len(s) * 100, 4),
+                    "q1": round(float(Q1), 6),
+                    "q3": round(float(Q3), 6),
+                    "iqr": round(float(IQR), 6),
                     "lower_bound": round(float(lo), 6),
                     "upper_bound": round(float(hi), 6),
                     "min_value": round(float(s.min()), 6),
@@ -134,8 +140,13 @@ class TargetDistributionAnalyzer(AnalysisComponent):
     def analyze(self, df: pd.DataFrame, config) -> dict:
         target = _get_target(df, config)
         logger.info(f"Analyzing: Target Distribution for '{target}'")
-        if target is None:
-            return {"target_distribution": "Target column not found."}
+        if target is None or target not in df.columns:
+            return {
+            "target_distribution": {},
+            "class_imbalance_ratio": None,
+            "is_balanced": False,
+            "balance_note": "Target column not found.",
+            }
 
         counts = df[target].value_counts().sort_index()
         pcts = (df[target].value_counts(normalize=True) * 100).sort_index().round(4)
@@ -165,11 +176,9 @@ class TargetDistributionAnalyzer(AnalysisComponent):
 
 class UnivariateAnalyzer(AnalysisComponent):
     """
-    Per-feature descriptive statistics for all numeric columns.
-
-    Reports mean, std, median, min, max, skewness, and excess kurtosis.
-    Flags highly skewed features (|skew| > 1) — 'Amount' is typically the
-    main offender and will need log-transformation before modelling.
+    Flags highly skewed features (|skew| > 1) for transformation review.
+    For strictly non-negative features such as Amount, log1p may be evaluated
+    inside the training pipeline and retained only if validation improves.
     """
 
     SKEW_THRESHOLD = 1.0
@@ -288,6 +297,7 @@ class FraudAmountAnalyzer(AnalysisComponent):
                 "p25":         round(float(percentiles[0.25]), 4),
                 "p75":         round(float(percentiles[0.75]), 4),
                 "p90":         round(float(percentiles[0.90]), 4),
+                "p95":         round(float(percentiles[0.95]), 4),
                 "p99":         round(float(percentiles[0.99]), 4),
                 "log1p_mean":  round(float(log_vals.mean()), 4),
                 "log1p_std":   round(float(log_vals.std()), 4),
@@ -438,8 +448,8 @@ class PointBiserialCorrelationAnalyzer(AnalysisComponent):
     This is the correct correlation measure when one variable is continuous and
     the other is binary (0/1 fraud label).  It is mathematically equivalent to
     Pearson's r in this case, and gives a signed effect direction:
-      +  → higher feature value associated with fraud
-      −  → lower feature value associated with fraud
+      +  → A positive correlation means larger feature values are associated with fraud (1)
+      −  → a negative correlation means larger values are associated with legitimate transactions (0)
 
     Subsamples large datasets for speed while remaining statistically valid.
     """
