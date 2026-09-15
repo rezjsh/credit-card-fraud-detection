@@ -164,7 +164,6 @@ class XGBoostModel(_BaseModel):
                 random_state=self.random_state,
                 n_jobs=-1,
                 eval_metric="aucpr",
-                use_label_encoder=False,
                 tree_method="hist",
             )),
         ])
